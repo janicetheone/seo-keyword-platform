@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Keyword Detail - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <a href="/keywords" class="text-sm text-indigo-600 hover:underline">&larr; Back to Keywords</a>
+</div>
+
+<div id="keyword-detail" class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h2 class="text-2xl font-bold text-gray-900" id="kw-text">Loading...</h2>
+        <div class="mt-3 flex flex-wrap gap-3" id="kw-meta"></div>
+    </div>
+
+    <!-- Scores -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Heat Score</p>
+            <p class="text-3xl font-bold" id="kw-heat">-</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Trends Score</p>
+            <p class="text-3xl font-bold text-blue-600" id="kw-trends">-</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Autocomplete Rank</p>
+            <p class="text-3xl font-bold text-purple-600" id="kw-rank">-</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Sources Found</p>
+            <p class="text-3xl font-bold text-green-600" id="kw-sources">-</p>
+        </div>
+    </div>
+
+    <!-- Trend History Chart -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Trend History</h3>
+        <canvas id="trendChart" height="200"></canvas>
+        <p class="text-xs text-gray-400 mt-2 hidden" id="no-trend-data">No trend history data yet. Run a trends refresh to start tracking.</p>
+    </div>
+
+    <!-- Categories -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Categories & Template Suggestions</h3>
+        <div id="kw-categories" class="space-y-3">
+            <p class="text-gray-400 text-sm">No categories assigned yet.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const KEYWORD_ID = {{ keyword_id }};
+</script>
+<script src="/static/js/keyword-detail.js"></script>
+{% endblock %}

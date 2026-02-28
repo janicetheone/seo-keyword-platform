@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Categories - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Template Categories</h2>
+    <p class="text-sm text-gray-500 mt-1">Keyword categories mapped to video template types</p>
+</div>
+
+<!-- Reclassify button -->
+<div class="mb-6">
+    <button id="reclassify-btn" onclick="reclassifyAll()"
+        class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+        Re-classify All Keywords
+    </button>
+    <span id="reclassify-status" class="ml-3 text-sm text-gray-500"></span>
+</div>
+
+<!-- Category Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="categories-grid">
+    <div class="text-center py-8 text-gray-400 col-span-2">Loading categories...</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadCategories() {
+    const stats = await fetch('/api/dashboard/stats').then(r => r.json());
+    const grid = document.getElementById('categories-grid');
+
+    if (!stats.category_distribution || stats.category_distribution.length === 0) {
+        grid.innerHTML = '<p class="text-gray-400 col-span-2 text-center py-8">No categories found. Run seed data initialization.</p>';
+        return;
+    }
+
+    grid.innerHTML = stats.category_distribution.map(cat => `
+        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4" style="border-left-color: ${cat.color}">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">${cat.display_name}</h3>
+                    <p class="text-sm text-gray-500">${cat.name}</p>
+                </div>
+                <span class="text-2xl font-bold" style="color: ${cat.color}">${cat.count}</span>
+            </div>
+            <div class="mt-4">
+                <a href="/keywords?category=${cat.name}" class="text-sm text-indigo-600 hover:underline">
+                    View ${cat.count} keywords &rarr;
+                </a>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function reclassifyAll() {
+    const btn = document.getElementById('reclassify-btn');
+    const status = document.getElementById('reclassify-status');
+    btn.disabled = true;
+    btn.textContent = 'Classifying...';
+    status.textContent = '';
+
+    try {
+        const resp = await fetch('/api/keywords/classify-all', { method: 'POST' });
+        const data = await resp.json();
+        status.textContent = `Classified ${data.classified} keywords`;
+        loadCategories();
+    } catch (e) {
+        status.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Re-classify All Keywords';
+    }
+}
+
+loadCategories();
+</script>
+{% endblock %}

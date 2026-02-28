@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Dashboard</h2>
+    <p class="text-sm text-gray-500 mt-1">Overview of your keyword research</p>
+</div>
+
+<!-- Stats Cards -->
+<div id="stats-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stat-card">
+        <p class="text-sm text-gray-500">Total Keywords</p>
+        <p class="text-3xl font-bold text-gray-900" id="stat-total">-</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-sm text-gray-500">New This Week</p>
+        <p class="text-3xl font-bold text-indigo-600" id="stat-new">-</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-sm text-gray-500">Rising Keywords</p>
+        <p class="text-3xl font-bold text-emerald-600" id="stat-rising">-</p>
+    </div>
+    <div class="stat-card">
+        <p class="text-sm text-gray-500">Avg Heat Score</p>
+        <p class="text-3xl font-bold text-orange-600" id="stat-heat">-</p>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Category Distribution -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Category Distribution</h3>
+        <div class="flex justify-center">
+            <canvas id="categoryChart" width="300" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Opportunity Matrix -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Opportunity Matrix</h3>
+        <p class="text-xs text-gray-400 mb-2">Heat Score vs Competition</p>
+        <canvas id="opportunityChart" height="250"></canvas>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Top Keywords -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Top 20 Keywords</h3>
+            <a href="/keywords" class="text-sm text-indigo-600 hover:underline">View all</a>
+        </div>
+        <div class="overflow-y-auto max-h-96">
+            <table class="kw-table">
+                <thead><tr><th>#</th><th>Keyword</th><th>Heat</th><th></th></tr></thead>
+                <tbody id="top-keywords-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Competitor Coverage -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Competitor Keyword Coverage</h3>
+        <canvas id="competitorChart" height="250"></canvas>
+    </div>
+</div>
+
+<!-- Last Collection Info -->
+<div class="bg-white rounded-xl p-4 shadow-sm">
+    <p class="text-sm text-gray-500">Last collection: <span id="last-collection" class="font-medium text-gray-700">-</span></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

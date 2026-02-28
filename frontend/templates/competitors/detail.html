@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Competitor Detail - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <a href="/competitors" class="text-sm text-indigo-600 hover:underline">&larr; Back to Competitors</a>
+</div>
+
+<div id="comp-detail" class="space-y-6">
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h2 class="text-2xl font-bold text-gray-900" id="comp-name">Loading...</h2>
+        <p class="text-gray-500" id="comp-domain"></p>
+    </div>
+
+    <!-- Gap Analysis -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Keyword Gap</p>
+            <p class="text-3xl font-bold text-red-600" id="gap-count">-</p>
+            <p class="text-xs text-gray-400">They have, we don't</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Overlap</p>
+            <p class="text-3xl font-bold text-blue-600" id="overlap-count">-</p>
+            <p class="text-xs text-gray-400">Both have</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-sm text-gray-500">Our Unique</p>
+            <p class="text-3xl font-bold text-green-600" id="unique-count">-</p>
+            <p class="text-xs text-gray-400">We have, they don't</p>
+        </div>
+    </div>
+
+    <!-- Gap Keywords -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4 text-red-600">Keyword Gap (Opportunities)</h3>
+        <div class="flex flex-wrap gap-2" id="gap-keywords">
+            <span class="text-gray-400 text-sm">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Overlap -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4 text-blue-600">Keyword Overlap</h3>
+        <div class="flex flex-wrap gap-2" id="overlap-keywords">
+            <span class="text-gray-400 text-sm">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Competitor Top Keywords -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h3 class="text-lg font-semibold mb-4">Top Competitor Keywords</h3>
+        <table class="kw-table">
+            <thead>
+                <tr><th>Keyword</th><th>Frequency</th><th>In Title</th><th>In H1</th><th>In Meta</th></tr>
+            </thead>
+            <tbody id="comp-keywords-body">
+                <tr><td colspan="5" class="text-center py-4 text-gray-400">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COMPETITOR_ID = {{ competitor_id }};
+
+async function loadDetail() {
+    // Load competitor list to find this one
+    const comps = await fetch('/api/competitors').then(r => r.json());
+    const comp = comps.find(c => c.id === COMPETITOR_ID);
+    if (comp) {
+        document.getElementById('comp-name').textContent = comp.name;
+        document.getElementById('comp-domain').textContent = comp.domain;
+    }
+
+    // Load gap analysis
+    try {
+        const gap = await fetch(`/api/competitors/${COMPETITOR_ID}/gap`).then(r => r.json());
+        document.getElementById('gap-count').textContent = gap.gap_count;
+        document.getElementById('overlap-count').textContent = gap.overlap_count;
+        document.getElementById('unique-count').textContent = gap.unique_count;
+
+        document.getElementById('gap-keywords').innerHTML = gap.gap.length
+            ? gap.gap.slice(0, 50).map(k => `<span class="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">${k}</span>`).join('')
+            : '<span class="text-gray-400 text-sm">No gaps found. Run competitor analysis first.</span>';
+
+        document.getElementById('overlap-keywords').innerHTML = gap.overlap.length
+            ? gap.overlap.slice(0, 50).map(k => `<span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">${k}</span>`).join('')
+            : '<span class="text-gray-400 text-sm">No overlap found.</span>';
+    } catch (e) {}
+
+    // Load competitor keywords
+    const kws = await fetch(`/api/competitors/${COMPETITOR_ID}/keywords`).then(r => r.json());
+    const tbody = document.getElementById('comp-keywords-body');
+    if (kws.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">No keywords. Run analysis first.</td></tr>';
+    } else {
+        tbody.innerHTML = kws.map(k => `
+            <tr>
+                <td class="font-medium">${k.keyword}</td>
+                <td>${k.frequency}</td>
+                <td>${k.in_title}</td>
+                <td>${k.in_h1}</td>
+                <td>${k.in_meta}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+loadDetail();
+</script>
+{% endblock %}

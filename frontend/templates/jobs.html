@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Jobs - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Collection Jobs</h2>
+    <p class="text-sm text-gray-500 mt-1">Track keyword expansion and competitor analysis jobs</p>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="kw-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Keywords Found</th>
+                <th>Started</th>
+                <th>Completed</th>
+            </tr>
+        </thead>
+        <tbody id="jobs-body">
+            <tr><td colspan="8" class="text-center py-8 text-gray-400">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadJobs() {
+    const jobs = await fetch('/api/jobs').then(r => r.json());
+    const tbody = document.getElementById('jobs-body');
+
+    if (jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">No jobs yet. Start a keyword expansion from the Discover page.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = jobs.map(j => {
+        const statusColors = {
+            completed: 'bg-green-100 text-green-800',
+            running: 'bg-blue-100 text-blue-800',
+            pending: 'bg-gray-100 text-gray-800',
+            failed: 'bg-red-100 text-red-800',
+        };
+        const statusCls = statusColors[j.status] || 'bg-gray-100 text-gray-800';
+        return `
+            <tr>
+                <td class="font-mono text-xs">${j.id}</td>
+                <td><span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">${j.job_type}</span></td>
+                <td class="font-medium">${j.seed_keyword || j.target || '-'}</td>
+                <td><span class="px-2 py-0.5 rounded text-xs font-medium ${statusCls}">${j.status}</span></td>
+                <td>
+                    <div class="progress-bar w-24">
+                        <div class="progress-bar-fill" style="width: ${j.progress}%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 ml-1">${j.progress}%</span>
+                </td>
+                <td>${j.keywords_found}</td>
+                <td class="text-xs text-gray-500">${j.started_at ? new Date(j.started_at).toLocaleString() : '-'}</td>
+                <td class="text-xs text-gray-500">${j.completed_at ? new Date(j.completed_at).toLocaleString() : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // Auto-refresh if any job is still running
+    if (jobs.some(j => j.status === 'running' || j.status === 'pending')) {
+        setTimeout(loadJobs, 3000);
+    }
+}
+
+loadJobs();
+</script>
+{% endblock %}

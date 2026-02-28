@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Browse Keywords - SEO Keyword Platform{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">Browse Keywords</h2>
+        <p class="text-sm text-gray-500 mt-1">All discovered keywords sorted by heat score</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/api/keywords/export" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Export CSV</a>
+        <a href="/keywords/discover" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">+ Discover</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl p-4 shadow-sm mb-6">
+    <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
+            <input type="text" id="filter-search" placeholder="Filter keywords..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        </div>
+        <div class="w-48">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+            <select id="filter-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+        <div class="w-40">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Sort By</label>
+            <select id="filter-sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <option value="heat_score">Heat Score</option>
+                <option value="trends_score">Trends Score</option>
+                <option value="first_seen">Newest First</option>
+                <option value="keyword">Alphabetical</option>
+            </select>
+        </div>
+        <label class="flex items-center gap-2 text-sm pb-1">
+            <input type="checkbox" id="filter-rising" class="rounded text-indigo-600">
+            Rising Only
+        </label>
+    </div>
+</div>
+
+<!-- Keywords Table -->
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="kw-table">
+            <thead>
+                <tr>
+                    <th>Keyword</th>
+                    <th>Heat Score</th>
+                    <th>Trends</th>
+                    <th>Source</th>
+                    <th>Categories</th>
+                    <th>Status</th>
+                    <th>First Seen</th>
+                </tr>
+            </thead>
+            <tbody id="keywords-body">
+                <tr><td colspan="7" class="text-center py-8 text-gray-400">Loading keywords...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination -->
+    <div class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+        <span class="text-sm text-gray-500" id="pagination-info"></span>
+        <div class="flex gap-2" id="pagination-controls"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/keyword-list.js"></script>
+{% endblock %}
