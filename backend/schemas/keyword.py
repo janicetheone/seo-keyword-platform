@@ -19,6 +19,8 @@ class KeywordOut(KeywordBase):
     trends_score: float
     autocomplete_rank: Optional[int] = None
     search_volume: Optional[int] = None
+    cpc: Optional[float] = None
+    competition_index: Optional[int] = None
     competition: Optional[float] = None
     is_rising: bool
     source_count: int

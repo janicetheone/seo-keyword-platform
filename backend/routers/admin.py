@@ -17,6 +17,7 @@ from backend.services.heat_ranker import calculate_heat_score
 from backend.services.keyword_expander import run_expansion
 from backend.utils.seed_data import TEMPLATE_CATEGORIES
 from backend.config import SEED_KEYWORDS
+from backend.services.dataforseo_service import get_search_volume, get_account_balance
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -161,6 +162,88 @@ async def populate_seeds(
         "expansion_jobs_started": jobs_started,
         "total_seeds": len(SEED_KEYWORDS),
     }
+
+
+@router.post("/enrich-search-volume")
+async def enrich_search_volume(
+    limit: int = 100,
+    overwrite: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Fetch real search volume + CPC from DataForSEO for keywords missing this data.
+    - limit: max keywords to enrich per call (keep low to save API credits)
+    - overwrite: if True, re-fetch even keywords that already have search_volume
+    Batches 1000 keywords per API request for efficiency.
+    """
+    # Check balance first
+    balance = await get_account_balance()
+
+    # Fetch keywords to enrich
+    if overwrite:
+        q = select(Keyword).limit(limit)
+    else:
+        q = select(Keyword).where(Keyword.search_volume == None).limit(limit)
+
+    keywords_to_enrich = (await db.execute(q)).scalars().all()
+
+    if not keywords_to_enrich:
+        return {"enriched": 0, "balance_remaining": balance, "message": "No keywords to enrich"}
+
+    # Batch in chunks of 1000 (DataForSEO limit per request)
+    BATCH = 1000
+    kw_texts = [kw.keyword for kw in keywords_to_enrich]
+    all_data: dict = {}
+    for i in range(0, len(kw_texts), BATCH):
+        chunk = kw_texts[i:i + BATCH]
+        chunk_data = await get_search_volume(chunk)
+        all_data.update(chunk_data)
+
+    # Write results back to DB
+    enriched = 0
+    for kw in keywords_to_enrich:
+        data = all_data.get(kw.keyword.lower().strip())
+        if not data:
+            continue
+        if data.get("search_volume") is not None:
+            kw.search_volume = data["search_volume"]
+        if data.get("cpc") is not None:
+            kw.cpc = data["cpc"]
+        if data.get("competition_index") is not None:
+            kw.competition_index = data["competition_index"]
+            kw.competition = data["competition_index"] / 100.0
+        if data.get("monthly_searches"):
+            kw.monthly_searches = json.dumps(data["monthly_searches"])
+        kw.last_updated = datetime.utcnow()
+        # Recalculate heat score with real search volume
+        kw.heat_score = calculate_heat_score(
+            trends_score=kw.trends_score or 0,
+            autocomplete_rank=kw.autocomplete_rank,
+            source_count=kw.source_count or 1,
+            is_rising=kw.is_rising or False,
+            competition=kw.competition,
+            search_volume=kw.search_volume,
+        )
+        enriched += 1
+
+    await db.commit()
+
+    # Refresh balance after spend
+    balance_after = await get_account_balance()
+
+    return {
+        "enriched": enriched,
+        "total_queried": len(keywords_to_enrich),
+        "balance_before": balance,
+        "balance_after": balance_after,
+    }
+
+
+@router.get("/dataforseo-balance")
+async def dataforseo_balance():
+    """Check remaining DataForSEO API credit balance."""
+    balance = await get_account_balance()
+    return {"balance_usd": balance}
 
 
 @router.get("/categories")

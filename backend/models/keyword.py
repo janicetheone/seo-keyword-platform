@@ -13,8 +13,11 @@ class Keyword(Base):
     heat_score = Column(Float, default=0.0)
     trends_score = Column(Float, default=0.0)
     autocomplete_rank = Column(Integer, nullable=True)
-    search_volume = Column(Integer, nullable=True)  # from Google Ads API (future)
-    competition = Column(Float, nullable=True)  # 0-1 competition score
+    search_volume = Column(Integer, nullable=True)       # monthly avg from DataForSEO
+    cpc = Column(Float, nullable=True)                   # cost-per-click USD
+    competition_index = Column(Integer, nullable=True)   # 0-100 Google Ads competition
+    monthly_searches = Column(Text, nullable=True)       # JSON: [{year,month,search_volume}]
+    competition = Column(Float, nullable=True)           # 0-1 competition score (legacy)
     is_rising = Column(Boolean, default=False)
     language = Column(String(10), default="en")
     parent_keyword = Column(String(500), nullable=True)
