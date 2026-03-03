@@ -1,19 +1,24 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import select, text
 
-from backend.database import init_db, async_session
+from backend.database import init_db, async_session, engine
 from backend.models import *  # noqa: ensure all models registered
 from backend.models.template_category import TemplateCategory
 from backend.models.competitor import Competitor
+from backend.models.keyword import Keyword
 from backend.routers import keywords, trends, competitors, dashboard, jobs, admin
 from backend.tasks.scheduler import setup_scheduler, shutdown_scheduler
 from backend.utils.seed_data import TEMPLATE_CATEGORIES, PRESET_COMPETITORS
+from backend.config import SEED_KEYWORDS
+from backend.services.keyword_classifier import classify_keyword
+from backend.services.heat_ranker import calculate_heat_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,10 +28,27 @@ TEMPLATES_DIR = BASE_DIR / "frontend" / "templates"
 STATIC_DIR = BASE_DIR / "frontend" / "static"
 
 
+async def run_migrations():
+    """Add new columns that may not exist in older DBs."""
+    migrations = [
+        ("cpc", "REAL"),
+        ("competition_index", "INTEGER"),
+        ("monthly_searches", "TEXT"),
+    ]
+    async with engine.begin() as conn:
+        for col, typedef in migrations:
+            try:
+                await conn.execute(text(f"ALTER TABLE keywords ADD COLUMN {col} {typedef}"))
+                logger.info(f"Migration: added column keywords.{col}")
+            except Exception:
+                pass  # column already exists
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
+    await run_migrations()
     await seed_initial_data()
     setup_scheduler()
     logger.info("SEO Keyword Platform started")
@@ -51,7 +73,7 @@ app.include_router(admin.router)
 
 
 async def seed_initial_data():
-    """Seed template categories and preset competitors if empty."""
+    """Seed template categories, preset competitors, and seed keywords if empty."""
     async with async_session() as db:
         # Seed categories
         existing = await db.execute(select(TemplateCategory).limit(1))
@@ -68,6 +90,29 @@ async def seed_initial_data():
                 db.add(Competitor(**comp_data))
             await db.commit()
             logger.info(f"Seeded {len(PRESET_COMPETITORS)} preset competitors")
+
+        # Auto-seed keywords if DB is empty (e.g. after Railway redeploy)
+        existing_kw = await db.execute(select(Keyword).limit(1))
+        if not existing_kw.scalar_one_or_none():
+            logger.info("Keywords table empty — auto-seeding...")
+            inserted = 0
+            for kw_text in SEED_KEYWORDS:
+                kw = Keyword(
+                    keyword=kw_text,
+                    source="seed",
+                    heat_score=calculate_heat_score(trends_score=0, source_count=1),
+                    trends_score=0,
+                    source_count=1,
+                    expansion_depth=0,
+                    first_seen=datetime.utcnow(),
+                    last_updated=datetime.utcnow(),
+                )
+                db.add(kw)
+                await db.flush()
+                await classify_keyword(db, kw)
+                inserted += 1
+            await db.commit()
+            logger.info(f"Auto-seeded {inserted} keywords")
 
 
 # ─── Page routes (Jinja2 templates) ───
